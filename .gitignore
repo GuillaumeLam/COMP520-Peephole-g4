@@ -3,3 +3,5 @@
 *.class
 *.j
 *.o
+patterns*.csv
+
