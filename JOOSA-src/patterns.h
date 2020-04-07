@@ -119,6 +119,41 @@ int simplify_goto_goto(CODE **c)
 	}
 	return 0;
 }
+
+/* iconst_0
+ * if_icmpeq label
+ * --------->
+ * ifeq label
+ */
+int simplifyEqualityComparison(CODE **c)
+{
+	int x;
+	int l;
+
+	if (is_ldc_int(*c, &x) && x == 0 && is_if_icmpeq(next(*c), &l))
+	{
+		return replace(c, 2, makeCODEifeq(l, NULL));
+	}
+	return 0;
+}
+
+/* iconst_0
+ * if_icmpne label
+ * --------->
+ * ifeq label
+ */
+int simplifyNonEqualityComparison(CODE **c)
+{
+	int x;
+	int l;
+
+	if (is_ldc_int(*c, &x) && x == 0 && is_if_icmpne(next(*c), &l))
+	{
+		return replace(c, 2, makeCODEifne(l, NULL));
+	}
+	return 0;
+}
+
 void init_patterns(void)
 {
 	ADD_PATTERN(simplify_multiplication_right);
@@ -126,4 +161,7 @@ void init_patterns(void)
 	ADD_PATTERN(simplify_istore);
 	ADD_PATTERN(positive_increment);
 	ADD_PATTERN(simplify_goto_goto);
+
+	ADD_PATTERN(simplifyEqualityComparison);
+	ADD_PATTERN(simplifyNonEqualityComparison);
 }
