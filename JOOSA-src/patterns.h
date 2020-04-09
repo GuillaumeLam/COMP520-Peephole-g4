@@ -200,10 +200,10 @@ void init_patterns(void)
 	ADD_PATTERN(simplify_istore);
 
 	ADD_PATTERN(positive_increment);
-	ADD_PATTERN(negative_increment); // need to double check this one
+	ADD_PATTERN(negative_increment); // DOUBLE CHECK
 
 	ADD_PATTERN(simplify_goto_goto);
-	ADD_PATTERN(removeDeadLabel);
+	ADD_PATTERN(removeDeadLabel); // DOUBLE CHECK
 
 	ADD_PATTERN(simplifyEqualityComparison);
 	ADD_PATTERN(simplifyNonEqualityComparison);
