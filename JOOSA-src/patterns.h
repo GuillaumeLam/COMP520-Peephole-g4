@@ -92,7 +92,7 @@ int simplifyAddition(CODE **c)
  * iload x
  */
 
-int simpifySubtraction(CODE **c) {
+int simplifySubtraction(CODE **c) {
     int x, k;
     if (is_iload(*c, &x) && 
     	is_ldc_int(next(*c), &k) && 
