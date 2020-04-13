@@ -37,15 +37,106 @@ int simplify_multiplication_right(CODE **c)
 	return 0;
 }
 
-/* dup
- * astore x
- * pop
- * -------->
- * astore x
+/* 
+ * ldc 0            ldc 1           ldc 2
+ * iload x          iload x         iload x
+ * imul             imul            imul
+ * ------>          ------>         ------>
+ * ldc 0            iload x         iload x
+ *                                  dup
+ *                                  iadd
  */
-int simplify_astore(CODE **c)
+
+int simplifyMultiplicationLeft(CODE **c) 
+{
+    int x, k;
+    if (is_ldc_int(*c, &k) && 
+    	is_iload(next(*c), &x) && 
+    	is_imul(next(next(*c))))
+    {
+        if (k == 0)
+            return replace(c, 3, makeCODEldc_int(0, NULL));
+        else if (k == 1) 
+            return replace(c, 3, makeCODEiload(x, NULL));
+        else if (k == 2)
+            return replace(c, 3, makeCODEiload(x, makeCODEdup(makeCODEiadd(NULL))));
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * iload x
+ * ldc 0
+ * iadd
+ * -------->
+ * iload x
+ */
+
+int simplifyAddition(CODE **c) 
+{
+    int x, k;
+    if (is_iload(*c, &x) && 
+    	is_ldc_int(next(*c), &k) && 
+    	is_iadd(next(next(*c))) &&
+    	k == 0) 
+        return replace(c, 3, makeCODEiload(x, NULL));
+    return 0;
+}
+
+/*
+ * iload x
+ * idc 0
+ * isub
+ * -------->
+ * iload x
+ */
+
+int simpifySubtraction(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && 
+    	is_ldc_int(next(*c), &k) && 
+    	is_isub(next(next(*c))) &&
+    	k == 0)
+        return replace(c, 3, makeCODEiload(x, NULL));
+    return 0;
+}
+
+
+/* 
+ * iload x
+ * ldc 1
+ * idiv
+ * -------->
+ * iload x
+ */
+
+int simplifyDivision(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && 
+    	is_ldc_int(next(*c), &k) && 
+    	is_idiv(next(next(*c))) &&
+    	k == 1) 
+        return replace(c, 3, makeCODEiload(x, NULL));
+    return 0;
+}
+
+/* dup 			dup
+ * istore x 	astore x
+ * pop 			pop
+ * --------> 	-------->
+ * istore x 	astore x
+ */
+int simplifyStore(CODE **c)
 {
 	int x;
+	if (is_dup(*c) &&
+		is_istore(next(*c), &x) &&
+		is_pop(next(next(*c))))
+	{
+		return replace(c, 3, makeCODEistore(x, NULL));
+	}
+
 	if (is_dup(*c) &&
 		is_astore(next(*c), &x) &&
 		is_pop(next(next(*c))))
@@ -55,22 +146,32 @@ int simplify_astore(CODE **c)
 	return 0;
 }
 
-/* dup
- * istore x
- * pop
- * -------->
- * istore x
+/* 
+ * astore k 		istore k
+ * aload k 			iload k
+ * --------->  		--------->
+ * dup   			dup
+ * astore k 		istore k
  */
-int simplify_istore(CODE **c)
-{
-	int x;
-	if (is_dup(*c) &&
-		is_istore(next(*c), &x) &&
-		is_pop(next(next(*c))))
-	{
-		return replace(c, 3, makeCODEistore(x, NULL));
+
+int simplifyStoreLoad(CODE **c)
+{ 
+	int k1, k2;
+  	/* istore, iload */
+	if (is_istore(*c, &k1) && 
+		is_iload(next(*c), &k2) &&
+		k1 == k2) {
+		return replace(c, 2, makeCODEdup(makeCODEistore(k1, NULL)));
 	}
-	return 0;
+
+  	/* astore, aload */
+  	if (is_astore(*c, &k1) && 
+  		is_aload(next(*c), &k2) && 
+  		k1 == k2) {
+    	return replace(c, 2, makeCODEdup(makeCODEastore(k1, NULL)));
+  	}
+
+  	return 0;
 }
 
 /* iload x
@@ -243,9 +344,13 @@ int simplifyEqualBranch(CODE **c)
 void init_patterns(void)
 {
 	ADD_PATTERN(simplify_multiplication_right);
+	ADD_PATTERN(simplifyMultiplicationLeft);
+	ADD_PATTERN(simplifyAddition);
+	ADD_PATTERN(simplifySubtraction);
+	ADD_PATTERN(simplifyDivision);
 
-	ADD_PATTERN(simplify_astore);
-	ADD_PATTERN(simplify_istore);
+	ADD_PATTERN(simplifyStore);
+	ADD_PATTERN(simplifyStoreLoad);
 
 	ADD_PATTERN(positive_increment);
 	ADD_PATTERN(negative_increment);
