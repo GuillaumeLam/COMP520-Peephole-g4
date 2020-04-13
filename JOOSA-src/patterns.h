@@ -65,6 +65,24 @@ int simplifyMultiplicationLeft(CODE **c)
     return 0;
 }
 
+/* 
+ * iload x
+ * ldc 1
+ * idiv
+ * -------->
+ * iload x
+ */
+
+int simplifyDivision(CODE **c) {
+    int x, k;
+    if (is_iload(*c, &x) && 
+    	is_ldc_int(next(*c), &k) && 
+    	is_idiv(next(next(*c))) &&
+    	k == 1) 
+        return replace(c, 3, makeCODEiload(x, NULL));
+    return 0;
+}
+
 /*
  * iload x
  * ldc 0
@@ -98,25 +116,6 @@ int simplifySubtraction(CODE **c) {
     	is_ldc_int(next(*c), &k) && 
     	is_isub(next(next(*c))) &&
     	k == 0)
-        return replace(c, 3, makeCODEiload(x, NULL));
-    return 0;
-}
-
-
-/* 
- * iload x
- * ldc 1
- * idiv
- * -------->
- * iload x
- */
-
-int simplifyDivision(CODE **c) {
-    int x, k;
-    if (is_iload(*c, &x) && 
-    	is_ldc_int(next(*c), &k) && 
-    	is_idiv(next(next(*c))) &&
-    	k == 1) 
         return replace(c, 3, makeCODEiload(x, NULL));
     return 0;
 }
@@ -341,6 +340,7 @@ int simplifyEqualBranch(CODE **c)
 	return 0;
 }
 
+<<<<<<< HEAD
 /* 
  * branch1 L1         
  *
@@ -549,6 +549,113 @@ int collapseLocalBranch(CODE **c) {
 	}
 
 	return 0;
+=======
+/* essentially flip comparisons on branch goto, must be unique label to apply */
+/*
+ * ifnull L1  	 ifnonnull L1 	ifeq L1		ifne L1    if_icmpeq L1 	if_icmpne L1 	 	
+ * goto L2 		
+ * L1:			
+ * --------->	
+ * ifnonnull L2  ifnull L2  	ifne L2 	ifeq L2 	if_icmpne L2 	if_icmpeq L2
+ */
+
+/*
+ * if_icmplt L1 	if_icmpgt  L1	if_icmple L1    if_icmpge L1 	if_acmpeq L1 	if_acmpne L1 	
+ * goto L2 		
+ * L1:			
+ * --------->	
+ * if_icmpge L2   	if_icmple L2 	 if_icmpgt L2 	if_icmplt L2 	if_acmpne L2 	if_acmpeq L2
+ */
+
+int simplifyBranchGoto(CODE **c)
+{ 
+	int l1, l2, l3;
+
+	if (is_ifnull(*c, &l1) && 
+  		uniquelabel(l1) &&
+		is_goto(next(*c), &l2) &&
+      	is_label(nextby(*c, 2), &l3) && 
+      	l3 == l1)
+    	return replace(c, 3, makeCODEifnonnull(l2, NULL));
+
+  	if (is_ifnonnull(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1) 
+		return replace(c, 3, makeCODEifnull(l2, NULL));
+
+	if (is_ifeq(*c, &l1) && 
+		uniquelabel(l1) &&
+	    is_goto(next(*c), &l2) &&
+	    is_label(nextby(*c, 2), &l3) && 
+	    l3 == l1) 
+	    return replace(c, 3, makeCODEifne(l2, NULL));	
+
+    if (is_ifne(*c, &l1) &&
+    	uniquelabel(l1) &&
+      	is_goto(next(*c), &l2) &&
+      	is_label(nextby(*c, 2), &l3) && 
+      	l3 == l1) 
+		return replace(c, 3, makeCODEifeq(l2, NULL));
+
+  	if (is_if_icmpeq(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1) 
+  		return replace(c, 3, makeCODEif_icmpne(l2, NULL));
+
+  	if (is_if_icmpne(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && l3 == l1)
+		return replace(c, 3, makeCODEif_icmpeq(l2, NULL));
+
+  	if (is_if_icmplt(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1) 
+  		return replace(c, 3, makeCODEif_icmpge(l2, NULL));
+
+	if (is_if_icmpgt(*c, &l1) && 
+		uniquelabel(l1) &&
+		is_goto(next(*c), &l2) &&
+		is_label(nextby(*c, 2), &l3) && 
+		l3 == l1) 
+		return replace(c, 3, makeCODEif_icmple(l2, NULL));
+
+	if (is_if_icmple(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) && 
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1)
+		return replace(c, 3, makeCODEif_icmpgt(l2, NULL));
+
+  	if (is_if_icmpge(*c, &l1) && 
+  		uniquelabel(l1) && 
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1)
+    	return replace(c, 3, makeCODEif_icmplt(l2, NULL));
+
+	if (is_if_acmpeq(*c, &l1) && 
+		uniquelabel(l1) &&
+		is_goto(next(*c), &l2) &&
+		is_label(nextby(*c, 2), &l3) && 
+		l3 == l1) 
+		return replace(c, 3, makeCODEif_acmpne(l2, NULL));
+
+  	if (is_if_acmpne(*c, &l1) && 
+  		uniquelabel(l1) &&
+  		is_goto(next(*c), &l2) &&
+  		is_label(nextby(*c, 2), &l3) && 
+  		l3 == l1)
+  		return replace(c, 3, makeCODEif_acmpeq(l2, NULL));
+
+  return 0;
+>>>>>>> bce2ed686eda639c5a54f02f08fa7b411b00082e
 }
 
 void init_patterns(void)
@@ -566,6 +673,7 @@ void init_patterns(void)
 	ADD_PATTERN(negative_increment);
 
 	ADD_PATTERN(simplify_goto_goto);
+	ADD_PATTERN(simplifyBranchGoto);
 	ADD_PATTERN(removeDeadLabel); 
 
 	ADD_PATTERN(simplifyEqualityComparison);
