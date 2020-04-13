@@ -192,6 +192,64 @@ int removeDeadLabel(CODE **c)
 	return 0;
 }
 
+/* if_icmpne L1
+ * iconst_0
+ * goto L2
+ * L1:
+ * iconst_1
+ * L2:
+ * ifeq L3
+ * --------->
+ * if_icmpeq L3
+ */
+
+int simplifyNotEqualBranch(CODE **c)
+{
+	int l1, l2, l3;
+	int x, y;
+
+	if (is_if_icmpne(*c, &l1) &&
+		is_ldc_int(next(*c), &x) &&
+		is_goto(next(next(*c)), &l2) &&
+		is_ldc_int(next(destination(l1)), &y) &&
+		is_ifeq(next(destination(l2)), &l3) &&
+		x == 0 && y == 1)
+
+	{
+		printf("SIMPLIFY NOT EQUAL\n");
+		return replace(c, 7, makeCODEif_icmpeq(l3, NULL));
+	}
+	return 0;
+}
+
+/* if_icmpeq L1
+ * iconst_0
+ * goto L2
+ * L1:
+ * iconst_1
+ * L2:
+ * ifeq L3
+ * --------->
+ * if_icmpne L3
+ */
+
+int simplifyEqualBranch(CODE **c)
+{
+	int l1, l2, l3;
+	int x, y;
+
+	if (is_if_icmpeq(*c, &l1) &&
+		is_ldc_int(next(*c), &x) &&
+		is_goto(next(next(*c)), &l2) &&
+		is_ldc_int(next(destination(l1)), &y) &&
+		is_ifeq(next(destination(l2)), &l3) &&
+		x == 0 && y == 1)
+	{
+		return replace(c, 7, makeCODEif_icmpne(l3, NULL));
+	}
+	return 0;
+}
+
 void init_patterns(void)
 {
 	ADD_PATTERN(simplify_multiplication_right);
@@ -207,4 +265,7 @@ void init_patterns(void)
 
 	ADD_PATTERN(simplifyEqualityComparison);
 	ADD_PATTERN(simplifyNonEqualityComparison);
+
+	ADD_PATTERN(simplifyNotEqualBranch);
+	ADD_PATTERN(simplifyEqualBranch);
 }
