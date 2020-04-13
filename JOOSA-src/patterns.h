@@ -340,7 +340,6 @@ int simplifyEqualBranch(CODE **c)
 	return 0;
 }
 
-<<<<<<< HEAD
 /* 
  * branch1 L1         
  *
@@ -549,7 +548,8 @@ int collapseLocalBranch(CODE **c) {
 	}
 
 	return 0;
-=======
+}
+
 /* essentially flip comparisons on branch goto, must be unique label to apply */
 /*
  * ifnull L1  	 ifnonnull L1 	ifeq L1		ifne L1    if_icmpeq L1 	if_icmpne L1 	 	
@@ -655,7 +655,6 @@ int simplifyBranchGoto(CODE **c)
   		return replace(c, 3, makeCODEif_acmpeq(l2, NULL));
 
   return 0;
->>>>>>> bce2ed686eda639c5a54f02f08fa7b411b00082e
 }
 
 void init_patterns(void)
